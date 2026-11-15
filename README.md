@@ -29,15 +29,26 @@ flowchart LR
 K=pingo_xxx   # from the keys tab
 # create (slug optional; scheme optional)
 curl -X POST https://pingo.pnetto.store/api/links -H "Authorization: Bearer $K" \
-  -H 'content-type: application/json' -d '{"url":"https://example.com","slug":"ex"}'
-# → {"slug":"ex","url":"https://example.com/","short":"https://pingo.pnetto.store/ex","clicks":0,"created_at":...}
+  -H 'content-type: application/json' -d '{"url":"https://example.com","slug":"my-named-link"}'
+# → {"slug":"my-named-link","url":"https://example.com/","short":"https://pingo.pnetto.store/my-named-link","clicks":0,...}
 
 curl https://pingo.pnetto.store/api/links      -H "Authorization: Bearer $K"   # list (latest 500)
-curl https://pingo.pnetto.store/api/links/ex   -H "Authorization: Bearer $K"   # get one
-curl -X DELETE https://pingo.pnetto.store/api/links/ex -H "Authorization: Bearer $K"
+curl https://pingo.pnetto.store/api/links/my-named-link   -H "Authorization: Bearer $K"   # get one
+curl -X DELETE https://pingo.pnetto.store/api/links/my-named-link -H "Authorization: Bearer $K"
 ```
 
-Errors: `400` invalid url/slug, `401` bad key, `404` not found, `409` slug taken, `429` rate limited (see `Retry-After`).
+Errors: `400` invalid url/slug, `401` bad key, `404` not found, `409` slug taken (`{"error":"Slug already taken","slug":"ex","taken":true}`), `429` rate limited (see `Retry-After`).
+
+### Named links
+
+`slug` is a caller-chosen name, i.e. a "named" short link — both the web form (`/custom-name` field) and API
+callers can set it, and the response's `short` uses it verbatim.
+
+- 1-64 chars of `[a-zA-Z0-9_-]`, case-sensitive, trimmed; omit it for a random 5-char slug.
+- Reserved (400): `api`, `docs`, `llms.txt`, `favicon.ico`, `robots.txt`, `login`, `logout`.
+- Names are unique **globally** (across keys). In use → `409`; losing the insert race against a concurrent
+  request also returns `409` rather than an error. Deleting a link frees its name.
+- Validation and duplicate checks run before create quota is charged, so retrying after a 400/409 is free.
 
 ### Frontend apps (CORS)
 

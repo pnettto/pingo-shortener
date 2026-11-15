@@ -168,26 +168,39 @@ async function createLink(req, env, auth) {
   if (!url) return json({ error: "Invalid URL" }, 400);
   if (new URL(url).host === new URL(req.url).host) return json({ error: "Can't shorten a pingo link" }, 400);
 
+  const taken = (slug) => env.DB.prepare("SELECT 1 FROM links WHERE slug = ?").bind(slug).first();
+
+  // A caller-chosen slug ("named" link) is validated before any quota is charged,
+  // so a retry after a 409 doesn't burn the caller's daily create allowance.
+  let slug = String(body.slug || "").trim();
+  if (slug) {
+    if (!SLUG_RE.test(slug) || RESERVED.has(slug.toLowerCase()))
+      return json({ error: "Invalid slug: 1-64 chars of a-z, A-Z, 0-9, - and _ (not reserved)" }, 400);
+    if (await taken(slug)) return json({ error: "Slug already taken", slug, taken: true }, 409);
+  }
+
   await burst(env.RL_CREATE, callerId(auth));
   await bump(env, "createDaily", callerId(auth));
 
-  let slug = String(body.slug || "").trim();
-  if (slug) {
-    if (!SLUG_RE.test(slug) || RESERVED.has(slug.toLowerCase())) return json({ error: "Invalid slug (a-z, 0-9, - and _)" }, 400);
-    if (await env.DB.prepare("SELECT 1 FROM links WHERE slug = ?").bind(slug).first()) return json({ error: "Slug already taken" }, 409);
-  } else {
+  if (!slug) {
     for (let i = 0; i < 6 && !slug; i++) {
       const s = randomSlug(i < 3 ? 5 : 7);
-      if (!(await env.DB.prepare("SELECT 1 FROM links WHERE slug = ?").bind(s).first())) slug = s;
+      if (!(await taken(s))) slug = s;
     }
     if (!slug) return json({ error: "Could not generate slug" }, 500);
   }
 
   const created_by = auth.type === "key" ? auth.id : null;
   const created_at = Date.now();
-  await env.DB.prepare("INSERT INTO links (slug, url, clicks, created_at, created_by) VALUES (?, ?, 0, ?, ?)")
-    .bind(slug, url, created_at, created_by)
-    .run();
+  try {
+    await env.DB.prepare("INSERT INTO links (slug, url, clicks, created_at, created_by) VALUES (?, ?, 0, ?, ?)")
+      .bind(slug, url, created_at, created_by)
+      .run();
+  } catch (e) {
+    // lost the race between the free-slug check and the insert: slug is the PRIMARY KEY
+    if (/UNIQUE constraint failed/i.test(String(e?.message || e))) return json({ error: "Slug already taken", slug, taken: true }, 409);
+    throw e;
+  }
   return json(linkOut(req, { slug, url, clicks: 0, created_at, created_by, app: auth.name }), 201);
 }
 

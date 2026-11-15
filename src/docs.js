@@ -24,7 +24,7 @@ Check the key works: \`GET /api/me\` → \`{"ok":true,"type":"key","app":"<key n
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
-| POST | /api/links | \`{"url": "...", "slug"?: "..."}\` | 201 link |
+| POST | /api/links | \`{"url": "...", "slug"?: "..."}\` (see Named links) | 201 link |
 | GET | /api/links | | \`{"links": [link]}\`, latest 500 created by this key |
 | GET | /api/links/:slug | | link |
 | DELETE | /api/links/:slug | | \`{"ok": true}\` |
@@ -34,8 +34,25 @@ Check the key works: \`GET /api/me\` → \`{"ok":true,"type":"key","app":"<key n
 Use \`short\` as the shareable URL. Visiting it redirects (302) to \`url\` and counts a click.
 
 - \`url\`: http(s) only; missing scheme becomes https. Pingo links can't be shortened.
-- \`slug\` (optional): 1-64 chars of \`[a-zA-Z0-9_-]\`. Omit it for a random 5-char slug.
 - A key only sees and deletes the links it created.
+
+### Named links
+
+Pass \`slug\` to choose the name yourself; it is used verbatim (case-sensitive) in the short URL.
+
+- 1-64 chars of \`[a-zA-Z0-9_-]\`. Surrounding whitespace is trimmed; omitting it (or an all-space value) gets a random 5-char slug.
+- Reserved, rejected with 400: \`api\`, \`docs\`, \`llms.txt\`, \`favicon.ico\`, \`robots.txt\`, \`login\`, \`logout\` (any casing).
+- Name already in use → 409 \`{"error":"Slug already taken","slug":"<name>","taken":true}\`. Pick another name, or retry with no \`slug\` for a random one.
+- Names are unique globally, across all keys — not just within yours. Deleting a link frees its name again.
+- A 400 or 409 never counts against your create quota, so retrying with a new name is free.
+- Readable names (\`q4-roadmap\`, \`team-2026\`) are encouraged; lowercase is easiest to type. Changing a link's name isn't supported — delete and recreate.
+
+\`\`\`bash
+curl -X POST ${o}/api/links \\
+  -H "Authorization: Bearer $PINGO_API_KEY" -H "content-type: application/json" \\
+  -d '{"url":"https://example.com/roadmap","slug":"q4-roadmap"}'
+# 201 {"slug":"q4-roadmap","short":"${o}/q4-roadmap",...}
+\`\`\`
 
 ### Example
 
@@ -70,7 +87,7 @@ Errors are JSON: \`{"error": "..."}\`.
 | 401 | missing or wrong key | ask the human for a valid key |
 | 403 | browser origin not allowed for this key | ask the human to add the domain to the key |
 | 404 | not found, or not this key's link | |
-| 409 | slug already taken | pick another slug or omit it |
+| 409 | slug already taken (\`taken: true\`) | pick another slug or omit it |
 | 429 | rate limited | wait \`Retry-After\` seconds, don't retry in a loop |
 
 Limits per key: about 120 requests/min, 30 new links/min, 1000 new links/day.
