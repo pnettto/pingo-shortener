@@ -5,6 +5,21 @@ Tiny URL shortener on Cloudflare Workers + D1 (free tier) at **https://pingo.pne
 - Browser: open the site, enter the password, shorten links (copied to clipboard automatically).
 - API: send `Authorization: Bearer <API_KEY>` (or `x-api-key: <API_KEY>`).
 
+## Architecture
+
+```mermaid
+flowchart LR
+  B["🧑 Browser"] -- "password → session cookie" --> W
+  A["🤖 Apps / scripts"] -- "Bearer API_KEY" --> W
+  V["🌍 Visitor"] -- "GET /:slug" --> W
+  subgraph CF["Cloudflare (free tier)"]
+    DNS["pingo.pnetto.store<br/>custom domain + TLS"] --> W["⚙️ Worker 'pingo'<br/>src/index.js"]
+    W -- "SQL" --> D[("🗄️ D1 'pingo'<br/>links table")]
+    S["🔑 Secrets<br/>PASSWORD · API_KEY · SESSION_SECRET"] -.-> W
+  end
+  W -- "302 redirect" --> T["🎯 Target URL"]
+```
+
 ## API
 
 ```bash
