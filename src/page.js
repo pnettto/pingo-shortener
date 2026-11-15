@@ -259,7 +259,7 @@ $("secretCopy").onclick = () => copy($("secretVal").textContent);
 // ---- auth ----
 document.querySelector(".tabs").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (b) tab(b.dataset.tab); });
 $("theme-toggle").checked = document.documentElement.dataset.theme === "light";
-$("theme-toggle").onchange = (e) => { const t = e.target.checked ? "light" : "dark"; document.documentElement.dataset.theme = t; localStorage.setItem("theme", t); };
+$("theme-toggle").onchange = (e) => pingoTheme(e.target.checked ? "light" : "dark");
 
 $("loginForm").addEventListener("submit", async (e) => {
   e.preventDefault(); $("loginErr").textContent = "";

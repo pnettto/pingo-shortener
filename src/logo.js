@@ -9,6 +9,7 @@ export const LOGO = `<svg class="pingo-logo" viewBox="0 0 64 64" xmlns="http://w
 // Design system (https://github.com/pnettto/design-system) via jsDelivr (serves the committed dist/); pinned to a tag so upgrades are deliberate.
 export const DS_CSS = "https://cdn.jsdelivr.net/gh/pnettto/design-system@v1.0.7/dist/css/bundle.min.css";
 
-// Same theme logic as the design system's ui.js (localStorage "theme", data-theme on <html>),
-// inlined in <head> to avoid a flash. We skip the DS JS bundle: its link prefetcher would "visit" short links.
-export const THEME_BOOT = `<script>(function(){var t=localStorage.getItem("theme")||(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");document.documentElement.setAttribute("data-theme",t);requestAnimationFrame(function(){requestAnimationFrame(function(){document.documentElement.classList.add("theme-ready")})})})()</script>`;
+// Theme: follows the OS (live) unless the user picked the *other* theme with the toggle. Uses the design system's
+// convention (localStorage "theme", data-theme on <html>), inlined in <head> to avoid a flash. We skip the DS JS
+// bundle: its link prefetcher would "visit" short links. Picking the theme that matches the OS clears the override.
+export const THEME_BOOT = `<script>(function(){var d=document.documentElement,q=matchMedia("(prefers-color-scheme: light)"),sys=function(){return q.matches?"light":"dark"},apply=function(){var t=localStorage.getItem("theme")||sys();d.setAttribute("data-theme",t);var c=document.getElementById("theme-toggle");if(c)c.checked=t==="light"};window.pingoTheme=function(t){t===sys()?localStorage.removeItem("theme"):localStorage.setItem("theme",t);apply()};apply();q.addEventListener("change",apply);requestAnimationFrame(function(){requestAnimationFrame(function(){d.classList.add("theme-ready")})})})()</script>`;
