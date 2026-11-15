@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS links (
+  slug TEXT PRIMARY KEY,
+  url TEXT NOT NULL,
+  clicks INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS links_created ON links(created_at DESC);

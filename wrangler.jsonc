@@ -1,0 +1,11 @@
+{
+  "name": "pingo",
+  "main": "src/index.js",
+  "compatibility_date": "2025-11-01",
+  "workers_dev": false,
+  "routes": [{ "pattern": "pingo.pnetto.store", "custom_domain": true }],
+  "d1_databases": [
+    { "binding": "DB", "database_name": "pingo", "database_id": "ff830234-ec8e-4dee-8505-05a104532202" }
+  ]
+  // secrets: PASSWORD, API_KEY, SESSION_SECRET  (wrangler secret put NAME)
+}
