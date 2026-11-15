@@ -6,6 +6,13 @@
   "routes": [{ "pattern": "pingo.pnetto.store", "custom_domain": true }],
   "d1_databases": [
     { "binding": "DB", "database_name": "pingo", "database_id": "ff830234-ec8e-4dee-8505-05a104532202" }
+  ],
+  // Fast, approximate (per Cloudflare location) burst limits. Strict limits live in D1 (see src/index.js).
+  "ratelimits": [
+    { "name": "RL_REDIRECT", "namespace_id": "1001", "simple": { "limit": 120, "period": 60 } },
+    { "name": "RL_API", "namespace_id": "1002", "simple": { "limit": 120, "period": 60 } },
+    { "name": "RL_CREATE", "namespace_id": "1003", "simple": { "limit": 30, "period": 60 } },
+    { "name": "RL_AUTHFAIL", "namespace_id": "1004", "simple": { "limit": 20, "period": 60 } }
   ]
-  // secrets: PASSWORD, API_KEY, SESSION_SECRET  (wrangler secret put NAME)
+  // secrets: PASSWORD, SESSION_SECRET  (wrangler secret put NAME)
 }
